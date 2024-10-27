@@ -1,5 +1,6 @@
 import streamlit as st
 from pytube import YouTube
+from pytubefix import YouTube
 from pytubefix.cli import on_progress
 import os
 import time
@@ -15,22 +16,22 @@ def run():
     # Verifica se a URL é válida
     if url:
         try:
-            yt = YouTube(url, on_progress_callback=on_progress)
+            yt = YouTube(url, use_po_token=True)
 
-            st.video(url)  # Exibe uma prévia do vídeo com tamanho reduzido
+            st.video(url)  # Exibe uma prévia do vídeo
             
             # Botão para download
             if yt:
                 # Define o formato de download
                 if download_option == "Vídeo":              
                     video_stream = yt.streams.get_highest_resolution()
-                    video_file = video_stream.download()  # Faz o download
+                    video_file = video_stream.download()
                     file_name = os.path.basename(video_file)
                     mime_type = "video/mp4"
                 
                 else:
                     video_stream = yt.streams.get_audio_only()
-                    video_file = video_stream.download()  # Faz o download
+                    video_file = video_stream.download()
                     file_name = os.path.basename(video_file)
                     mime_type = "audio/mp3"
 
@@ -47,9 +48,7 @@ def run():
                         time.sleep(5)
                         if os.path.exists(video_file):
                             os.remove(video_file)
-                    else:
-                        os.remove(video_file)
-                        
+
         except Exception as e:
             st.error(f"Erro: {e}")
 
