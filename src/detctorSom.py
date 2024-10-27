@@ -1,10 +1,11 @@
 import streamlit as st
-import sounddevice as sd
+import pyaudio
 import numpy as np
 import matplotlib.pyplot as plt
 import math
 import time
 from collections import Counter
+import threading
 
 # Configurações
 SAMPLE_RATE = 44100  # Taxa de amostragem (Hz)
@@ -26,52 +27,51 @@ def freq_to_note_name(frequency):
 # Lista para armazenar dados de áudio e notas
 audio_data_buffer = []
 notes = []
+running = False
+audio_thread = None  # Inicializa audio_thread como None
 
-# Função de callback para processar áudio
-def audio_callback(indata, frames, time, status):
-    if status:
-        print(status)
+# Configuração do PyAudio
+p = pyaudio.PyAudio()
+stream = p.open(format=pyaudio.paFloat32,
+                 channels=1,
+                 rate=SAMPLE_RATE,
+                 input=True,
+                 frames_per_buffer=1024)
 
-    # Converte o áudio para array NumPy
-    audio_data = np.squeeze(indata)
-    
-    # Armazena o áudio no buffer
-    audio_data_buffer.extend(audio_data)
+def process_audio():
+    global notes, audio_data_buffer, running
 
-    # Aplica FFT para obter as frequências
-    fft_spectrum = np.abs(np.fft.fft(audio_data))
-    freqs = np.fft.fftfreq(len(fft_spectrum), 1 / SAMPLE_RATE)
+    while running:
+        try:
+            # Lê dados de áudio
+            data = stream.read(1024, exception_on_overflow=False)
+            audio_data = np.frombuffer(data, dtype=np.float32)
+            audio_data_buffer.extend(audio_data)
 
-    # Encontrar a frequência dominante
-    idx = np.argmax(fft_spectrum[:len(fft_spectrum)//2])  # Só usamos a primeira metade
-    freq = abs(freqs[idx])
+            # Aplica FFT para obter as frequências
+            fft_spectrum = np.abs(np.fft.fft(audio_data))
+            freqs = np.fft.fftfreq(len(fft_spectrum), 1 / SAMPLE_RATE)
 
-    # Converte frequência em nota
-    note = freq_to_note_name(freq)
-    
-    # Armazena a nota
-    notes.append(note)
+            # Encontrar a frequência dominante
+            idx = np.argmax(fft_spectrum[:len(fft_spectrum)//2])  # Só usamos a primeira metade
+            freq = abs(freqs[idx])
 
-# Função para plotar a forma de onda
-def plot_waveform(audio_data):
-    plt.figure(figsize=(10, 4))
-    plt.plot(audio_data, color='blue')
-    plt.title("Forma de Onda do Áudio")
-    plt.xlabel("Tempo (amostras)")
-    plt.ylabel("Amplitude")
-    plt.grid()
-    plt.xlim(0, len(audio_data))
-    plt.ylim(-1, 1)
-    plt.tight_layout()
-    return plt
+            # Converte frequência em nota
+            note = freq_to_note_name(freq)
+            notes.append(note)
+
+            time.sleep(0.1)  # Espera um curto período para evitar uso excessivo de CPU
+        except Exception as e:
+            print(f"Erro no processamento de áudio: {e}")
+            break
 
 # Função principal
 def run():
+    global running, audio_thread
     st.header("Detecção de Notas Musicais em Tempo Real", divider=True)
     st.write('As notas vão de C0 (Dó na oitava 0) até B0 (Si na oitava 0), e assim por diante..') 
     st.write('O número ao lado da nota refere-se à oitava em que a nota se encontra.')
 
-    
     # Criar placeholders
     note_display = st.empty()  # Placeholder para exibir a nota
     graph_placeholder = st.empty()  # Placeholder para o gráfico
@@ -85,28 +85,39 @@ def run():
         audio_data_buffer.clear()
         notes.clear()
         
-        # Inicia o stream de áudio
-        with sd.InputStream(callback=audio_callback, channels=1, samplerate=SAMPLE_RATE):
-            while True:
-                time.sleep(0.1)  # Espera um curto período para evitar uso excessivo de CPU
-                
-                # Atualiza a forma de onda em tempo real
-                if audio_data_buffer:
-                    # Plota a forma de onda
-                    current_audio_data = np.array(audio_data_buffer[-SAMPLE_RATE:])  # Captura os últimos segundos
-                    plt.clf()  # Limpa o gráfico anterior
-                    plot_waveform(current_audio_data)  # Plota a forma de onda atualizada
-                    graph_placeholder.pyplot(plt)  # Exibe o gráfico
+        running = True  # Inicia a flag de execução
+        audio_thread = threading.Thread(target=process_audio)
+        audio_thread.start()
 
-                    # Exibe a última nota detectada
-                    current_note = notes[-1]  # Pega a última nota detectada
-                    note_display.markdown(f"<h1 style='text-align: center; color: blue;'>{current_note}</h1>", unsafe_allow_html=True)
+        while running:
+            # Atualiza a forma de onda em tempo real
+            if audio_data_buffer:
+                # Plota a forma de onda
+                current_audio_data = np.array(audio_data_buffer[-SAMPLE_RATE:])  # Captura os últimos segundos
+                plt.clf()  # Limpa o gráfico anterior
+                plt.plot(current_audio_data)
+                plt.title("Forma de Onda do Áudio")
+                plt.xlabel("Tempo (amostras)")
+                plt.ylabel("Amplitude")
+                plt.xlim(0, len(current_audio_data))
+                plt.ylim(-1, 1)
+                graph_placeholder.pyplot(plt)
 
-                # Checa se o botão "Parar Detecção" foi pressionado
-                if stop_detection:
-                    break
+                # Exibe a última nota detectada
+                current_note = notes[-1] if notes else "Sem detecção"  # Pega a última nota detectada
+                note_display.markdown(f"<h1 style='text-align: center; color: blue;'>{current_note}</h1>", unsafe_allow_html=True)
+
+            # Checa se o botão "Parar Detecção" foi pressionado
+            if stop_detection:
+                break
 
     if stop_detection:
+        running = False  # Para o processamento de áudio
+        if audio_thread is not None:  # Verifica se a thread foi criada
+            audio_thread.join()  # Aguarda o término da thread de áudio
+        stream.stop_stream()
+        stream.close()
+        p.terminate()
         st.write("Detecção parada.")
         
         # Exibe as notas detectadas
