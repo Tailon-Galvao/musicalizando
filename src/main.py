@@ -3,11 +3,13 @@ import numpy as np
 from st_on_hover_tabs import on_hover_tabs
 import importlib
 
+css_file_path = 'css/style.css'
+
 # Configurações da página
 st.set_page_config(page_title="Musicalizando", layout="wide")
 
 # Aplicar estilo CSS personalizado
-st.markdown('<style>' + open('../css/style.css').read() + '</style>', unsafe_allow_html=True)
+st.markdown('<style>' + open(css_file_path).read() + '</style>', unsafe_allow_html=True)
 
 # Sidebar com imagem e tabs de navegação
 with st.sidebar:
