@@ -48,7 +48,7 @@ with st.sidebar:
         "</div>",
         unsafe_allow_html=True
    )
-
+ 
 # Redirecionamento para os arquivos de página
 if selected == "Detector de Nota":
     page = "detctorSom"
