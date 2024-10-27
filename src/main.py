@@ -4,7 +4,6 @@ from st_on_hover_tabs import on_hover_tabs
 import importlib
 
 css_file_path = 'css/style.css'
-image_path='/img/music.png'
 
 # Configurações da página
 st.set_page_config(page_title="Musicalizando", layout="wide")
@@ -13,12 +12,16 @@ st.set_page_config(page_title="Musicalizando", layout="wide")
 st.markdown('<style>' + open(css_file_path).read() + '</style>', unsafe_allow_html=True)
 
 # Sidebar com imagem e tabs de navegação
+image_path='/img/music.png'
 with st.sidebar:
-    st.image(
-        image_path,
-        output_format="auto",
-        width=75
-    )
+   try:
+        st.image(
+            image_path,
+            output_format="auto",
+            width=75
+        )
+   except Exception as e:
+    st.error(f"Ocorreu um erro ao carregar a imagem: {e}")
     
     selected = on_hover_tabs(
         tabName=["Detector de Nota", 'Campo Harmônico', 'Baixar Video', 'Configurações'],
