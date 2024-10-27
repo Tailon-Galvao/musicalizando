@@ -4,6 +4,7 @@ from st_on_hover_tabs import on_hover_tabs
 import importlib
 
 css_file_path = 'css/style.css'
+image_path='/img/music.png'
 
 # Configurações da página
 st.set_page_config(page_title="Musicalizando", layout="wide")
@@ -14,7 +15,7 @@ st.markdown('<style>' + open(css_file_path).read() + '</style>', unsafe_allow_ht
 # Sidebar com imagem e tabs de navegação
 with st.sidebar:
     st.image(
-        "../img/music.png",
+        image_path,
         output_format="auto",
         width=75
     )
