@@ -24,14 +24,14 @@ except FileNotFoundError:
 # Sidebar com imagem e tabs de navegação
 image_path='../img/music.png'
 with st.sidebar:
-   try:
-        st.image(
-            image_path,
-            output_format="auto",
-            width=75
-        )
-   except Exception as e:
-    st.error(f"Ocorreu um erro ao carregar a imagem: {e}")
+#    try:
+#         st.image(
+#             image_path,
+#             output_format="auto",
+#             width=75
+#         )
+#    except Exception as e:
+#     st.error(f"Ocorreu um erro ao carregar a imagem: {e}")
     
    selected = on_hover_tabs(
         tabName=["Detector de Nota", 'Campo Harmônico', 'Baixar Video', 'Configurações'],
