@@ -2,15 +2,24 @@ import streamlit as st
 import numpy as np
 from st_on_hover_tabs import on_hover_tabs
 import importlib
+import os
 
-
-css_file_path = '../css/style.css'
+# Definindo o caminho do arquivo CSS
+css_file_path = os.path.join(os.path.dirname(__file__), '../css/style.css')
+# css_file_path = '../css/style.css'
 
 # Configurações da página
 st.set_page_config(page_title="Musicalizando", layout="wide")
 
 # Aplicar estilo CSS personalizado
-st.markdown('<style>' + open(css_file_path).read() + '</style>', unsafe_allow_html=True)
+# st.markdown('<style>' + open(css_file_path).read() + '</style>', unsafe_allow_html=True)
+
+# Aplicar estilo CSS personalizado
+try:
+    with open(css_file_path) as f:
+        st.markdown('<style>' + f.read() + '</style>', unsafe_allow_html=True)
+except FileNotFoundError:
+    st.error(f"Arquivo CSS não encontrado: {css_file_path}")
 
 # Sidebar com imagem e tabs de navegação
 image_path='../img/music.png'
